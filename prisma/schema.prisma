@@ -1,0 +1,899 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  INCOMPLETE
+}
+
+enum AgeGateStatus {
+  NOT_STARTED
+  PASSED
+  BLOCKED
+}
+
+enum AgeVerificationStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum EntitlementType {
+  PERSONA_ACCESS
+  CONTENT_UNLOCK
+  CHAT_CREDITS
+  VIP_ACCESS
+}
+
+enum EntitlementSourceType {
+  SUBSCRIPTION
+  PURCHASE
+  ADMIN_GRANT
+  SYSTEM
+}
+
+enum ContentType {
+  IMAGE
+  VOICE_NOTE
+  GALLERY
+  THEMED_DROP
+  TEXT_POST
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ConversationStatus {
+  ACTIVE
+  FROZEN
+  CLOSED
+}
+
+enum RiskState {
+  CLEAR
+  FLAGGED
+  BLOCKED
+}
+
+enum SenderType {
+  USER
+  ASSISTANT
+  SYSTEM
+  ADMIN
+}
+
+enum ModerationLabel {
+  CLEAR
+  WARNING
+  BLOCKED
+  REVIEW
+}
+
+enum OfferType {
+  IMAGE_PACK
+  VOICE_PACK
+  CHAT_CREDITS
+  THEMED_DROP
+  VIP_UPGRADE
+}
+
+enum PurchaseStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+}
+
+enum FlagType {
+  INPUT
+  OUTPUT
+  AGE
+  BILLING
+  SAFETY
+  QUALITY
+}
+
+enum FlagSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FlagStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum MemoryClass {
+  PREFERENCE
+  CONTENT
+  PURCHASE
+  STYLE
+}
+
+enum EventCategory {
+  ACQUISITION
+  VERIFICATION
+  BILLING
+  ENGAGEMENT
+  MODERATION
+  OPERATIONS
+}
+
+enum SupportCategory {
+  QUALITY
+  BILLING
+  CONTENT
+  SAFETY
+  OPPORTUNITY
+  OUTREACH
+  COMMUNITY
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  RESOLVED
+}
+
+enum BillingStatus {
+  INACTIVE
+  ACTIVE
+  GRACE_PERIOD
+  READ_ONLY
+  CANCELED
+}
+
+enum MediaAssetType {
+  VIDEO_LINK
+  PDF_CV
+  IMAGE
+  METRICS_FILE
+}
+
+enum MediaAssetStatus {
+  ACTIVE
+  PENDING
+  REJECTED
+}
+
+enum StakeholderDeliveryMode {
+  INBOX
+  EMAIL_RELAY
+  BOTH
+}
+
+enum StakeholderVerificationStatus {
+  SEEDED
+  VERIFIED
+  PAUSED
+}
+
+enum OpportunityType {
+  VERIFIED_OPPORTUNITY
+  INFERRED_NEED
+  EVENT_SHOWCASE
+  OPEN_CALL
+}
+
+enum OpportunityTrustLabel {
+  VERIFIED
+  INFERRED
+}
+
+enum OpportunityStatus {
+  DRAFT
+  OPEN
+  REVIEWING
+  CLOSING_SOON
+  ARCHIVED
+}
+
+enum OutreachStatus {
+  DRAFT
+  IN_REVIEW
+  QUEUED
+  DELIVERED
+  REJECTED
+  DECLINED
+}
+
+enum OutreachResponseState {
+  NONE
+  RESPONDED
+  SAVED
+  DECLINED
+  REPORTED
+}
+
+enum InsightType {
+  PROFILE_COACH
+  CLUB_FIT
+  POSITIONAL_NEED
+  MESSAGE_ASSIST
+  OPPORTUNITY_RANKING
+  MODERATION_ASSIST
+}
+
+enum PostVisibility {
+  PUBLIC
+  MEMBERS_ONLY
+}
+
+enum CommentStatus {
+  PUBLISHED
+  FLAGGED
+  HIDDEN
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+model User {
+  id                    String                @id @default(cuid())
+  email                 String                @unique
+  passwordHash          String
+  role                  UserRole              @default(USER)
+  status                UserStatus            @default(ACTIVE)
+  ageGateStatus         AgeGateStatus         @default(NOT_STARTED)
+  ageVerificationStatus AgeVerificationStatus @default(NOT_STARTED)
+  country               String?
+  lastSeenAt            DateTime?
+  trustScore            Float                 @default(0.72)
+  billingStatus         BillingStatus         @default(INACTIVE)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  sessions              Session[]
+  subscriptions         Subscription[]
+  entitlements          Entitlement[]
+  purchases             Purchase[]
+  conversations         Conversation[]
+  userMemory            UserMemory[]
+  moderationAssignments ModerationFlag[]      @relation("AssignedModerator")
+  moderationResolutions ModerationFlag[]      @relation("ResolvedByModerator")
+  auditLogs             AdminAuditLog[]       @relation("AdminActor")
+  favorites             ContentFavorite[]
+  analyticsEvents       AnalyticsEvent[]
+  verificationEvents    VerificationEvent[]
+  supportRequests       SupportRequest[]
+  playerProfile         PlayerProfile?
+  mediaAssets           MediaAsset[]
+  outreachRequests      OutreachRequest[]
+  creditLedgers         CreditLedger[]
+  aiInsights            AIInsight[]
+  contentPosts          ContentPost[]         @relation("PostAuthor")
+  comments              Comment[]
+  notifications         Notification[]
+  savedOpportunities    SavedOpportunity[]
+  moderationEvents      ModerationEvent[]     @relation("ModerationActor")
+  claimedStakeholders   Stakeholder[]         @relation("StakeholderClaimOwner")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Persona {
+  id                String           @id @default(cuid())
+  slug              String           @unique
+  displayName       String
+  heroHeadline      String
+  heroDescription   String
+  shortBio          String
+  disclosureText    String
+  toneProfile       String
+  visualStyle       String
+  contentCategories String[]
+  boundaries        String[]
+  sampleSnippets    String[]
+  accentColor       String
+  heroGradient      String
+  welcomeMessage    String
+  isActive          Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  plans             Plan[]
+  contentItems      ContentItem[]
+  conversations     Conversation[]
+  userMemory        UserMemory[]
+  entitlements      Entitlement[]
+  offers            Offer[]
+  analyticsEvents   AnalyticsEvent[]
+}
+
+model Plan {
+  id                String         @id @default(cuid())
+  slug              String         @unique
+  name              String
+  description       String
+  benefits          String[]
+  personaId         String?
+  monthlyPriceCents Int
+  messageQuota      Int
+  annualPriceCents  Int?
+  featuresJson      Json?
+  sortOrder         Int            @default(0)
+  isBundle          Boolean        @default(false)
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  persona           Persona?       @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  userId                 String
+  planId                 String
+  status                 SubscriptionStatus @default(ACTIVE)
+  startedAt              DateTime           @default(now())
+  renewsAt               DateTime
+  cycleStart             DateTime?
+  cycleEnd               DateTime?
+  canceledAt             DateTime?
+  providerCustomerId     String?
+  providerSubscriptionId String?            @unique
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  user                   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                   Plan               @relation(fields: [planId], references: [id], onDelete: Cascade)
+  purchases              Purchase[]
+  creditLedgers          CreditLedger[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+model Entitlement {
+  id             String                @id @default(cuid())
+  userId         String
+  entitlementType EntitlementType
+  personaId      String?
+  contentItemId  String?
+  sourceType     EntitlementSourceType
+  sourceId       String
+  unitsGranted   Int?
+  unitsRemaining Int?
+  expiresAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  persona        Persona?              @relation(fields: [personaId], references: [id], onDelete: SetNull)
+  contentItem    ContentItem?          @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([personaId])
+  @@index([contentItemId])
+  @@index([sourceType, sourceId])
+}
+
+model ContentItem {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  personaId    String
+  contentType  ContentType
+  title        String
+  caption      String
+  assetUrl     String
+  thumbnailUrl String
+  isPremium    Boolean           @default(false)
+  priceCents   Int?
+  status       ContentStatus     @default(DRAFT)
+  isTeaser     Boolean           @default(false)
+  tags         String[]
+  publishedAt  DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  persona      Persona           @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  entitlements Entitlement[]
+  purchases    Purchase[]
+  offers       Offer[]
+  favorites    ContentFavorite[]
+  supportRequests SupportRequest[]
+
+  @@index([personaId])
+  @@index([status])
+}
+
+model Conversation {
+  id            String             @id @default(cuid())
+  userId        String
+  personaId     String
+  status        ConversationStatus @default(ACTIVE)
+  lastMessageAt DateTime?
+  riskState     RiskState          @default(CLEAR)
+  summaryText   String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  persona       Persona            @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  messages      Message[]
+  flags         ModerationFlag[]
+  supportRequests SupportRequest[]
+
+  @@unique([userId, personaId])
+  @@index([userId])
+  @@index([personaId])
+}
+
+model Message {
+  id              String          @id @default(cuid())
+  conversationId  String
+  senderType      SenderType
+  bodyText        String
+  contentItemId   String?
+  tokenCount      Int?
+  modelName       String?
+  moderationLabel ModerationLabel @default(CLEAR)
+  createdAt       DateTime        @default(now())
+  conversation    Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  contentItem     ContentItem?    @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  flags           ModerationFlag[]
+
+  @@index([conversationId])
+  @@index([createdAt])
+}
+
+model UserMemory {
+  id              String      @id @default(cuid())
+  userId          String
+  personaId       String
+  key             String
+  value           String
+  memoryClass     MemoryClass
+  confidenceScore Float
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  persona         Persona     @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, personaId, key])
+  @@index([userId])
+  @@index([personaId])
+}
+
+model Offer {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  personaId     String
+  offerType    OfferType
+  title        String
+  description  String
+  priceCents   Int
+  contentItemId String?
+  unitsGranted Int?
+  isActive     Boolean     @default(true)
+  activeFrom   DateTime?
+  activeTo     DateTime?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  persona      Persona     @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  purchases    Purchase[]
+
+  @@index([personaId])
+  @@index([isActive])
+}
+
+model Purchase {
+  id                String         @id @default(cuid())
+  userId            String
+  offerId           String?
+  contentItemId     String?
+  subscriptionId    String?
+  amountCents       Int
+  currency          String         @default("USD")
+  providerPaymentId String?
+  status            PurchaseStatus @default(PAID)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  refundedAt        DateTime?
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer             Offer?         @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  contentItem       ContentItem?   @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  subscription      Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ModerationFlag {
+  id              String       @id @default(cuid())
+  conversationId  String
+  messageId       String?
+  flagType        FlagType
+  severity        FlagSeverity
+  reason          String
+  status          FlagStatus   @default(OPEN)
+  assignedTo      String?
+  resolvedById    String?
+  resolutionNotes String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  resolvedAt      DateTime?
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message         Message?     @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  assignee        User?        @relation("AssignedModerator", fields: [assignedTo], references: [id], onDelete: SetNull)
+  resolvedBy      User?        @relation("ResolvedByModerator", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([conversationId])
+  @@index([status])
+  @@index([severity])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  adminUserId  String
+  actionType   String
+  targetType   String
+  targetId     String
+  metadataJson String?
+  createdAt    DateTime @default(now())
+  adminUser    User     @relation("AdminActor", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([targetType, targetId])
+}
+
+model ContentFavorite {
+  id            String      @id @default(cuid())
+  userId        String
+  contentItemId String
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentItemId])
+  @@index([userId])
+}
+
+model VerificationEvent {
+  id         String                @id @default(cuid())
+  userId     String
+  provider   String
+  status     AgeVerificationStatus
+  reference  String?
+  createdAt  DateTime              @default(now())
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model AnalyticsEvent {
+  id           String        @id @default(cuid())
+  eventName    String
+  category     EventCategory
+  userId       String?
+  personaId    String?
+  metadataJson String?
+  createdAt    DateTime      @default(now())
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  persona      Persona?      @relation(fields: [personaId], references: [id], onDelete: SetNull)
+
+  @@index([eventName])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String
+  isEnabled   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SupportRequest {
+  id             String          @id @default(cuid())
+  userId         String?
+  conversationId String?
+  contentItemId  String?
+  category       SupportCategory
+  subject        String
+  message        String
+  status         SupportStatus   @default(OPEN)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  conversation   Conversation?   @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  contentItem    ContentItem?    @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([userId])
+}
+
+model PlayerProfile {
+  id                        String             @id @default(cuid())
+  userId                    String             @unique
+  displayName               String?
+  ageBand                   String?
+  nationality               String?
+  dominantFoot              String?
+  primaryPosition           String?
+  secondaryPositions        String[]
+  heightCm                  Int?
+  currentStatus             String?
+  clubHistoryJson           Json?
+  videoLinks                String[]
+  statisticsJson            Json?
+  availability              String?
+  workAuthorization         String?
+  agentRepresentationStatus String?
+  bio                       String?
+  completenessScore         Int                @default(0)
+  isPublic                  Boolean            @default(false)
+  publicShareToken          String?            @unique
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  user                      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAssets               MediaAsset[]
+  outreachRequests          OutreachRequest[]
+  aiInsights                AIInsight[]
+  comments                  Comment[]
+}
+
+model MediaAsset {
+  id           String           @id @default(cuid())
+  userId       String
+  profileId    String?
+  assetType    MediaAssetType
+  storagePath  String?
+  externalUrl  String?
+  status       MediaAssetStatus @default(ACTIVE)
+  metadataJson Json?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile      PlayerProfile?   @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([profileId])
+  @@index([assetType])
+}
+
+model Stakeholder {
+  id                   String                        @id @default(cuid())
+  slug                 String                        @unique
+  orgName              String
+  contactName          String?
+  roleTitle            String?
+  geography            String?
+  positionGroups       String[]
+  deliveryMode         StakeholderDeliveryMode       @default(BOTH)
+  preferenceJson       Json?
+  verificationStatus   StakeholderVerificationStatus @default(SEEDED)
+  maxWeeklyVolume      Int?
+  isAcceptingProfiles  Boolean                       @default(true)
+  claimedByUserId      String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+  claimedByUser        User?                         @relation("StakeholderClaimOwner", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+  opportunities        Opportunity[]
+  outreachRequests     OutreachRequest[]
+
+  @@index([verificationStatus])
+  @@index([claimedByUserId])
+}
+
+model Opportunity {
+  id                  String                @id @default(cuid())
+  slug                String                @unique
+  stakeholderId       String?
+  createdById         String?
+  opportunityType     OpportunityType
+  title               String
+  orgName             String
+  positionGroup       String
+  geography           String
+  level               String
+  eligibilityNotes    String?
+  trustLabel          OpportunityTrustLabel
+  confidence          Int?
+  rationaleSnippet    String?
+  sourceProvenance    String?
+  freshnessExpiresAt  DateTime
+  status              OpportunityStatus     @default(OPEN)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  stakeholder         Stakeholder?          @relation(fields: [stakeholderId], references: [id], onDelete: SetNull)
+  outreachRequests    OutreachRequest[]
+  savedBy             SavedOpportunity[]
+
+  @@index([stakeholderId])
+  @@index([trustLabel])
+  @@index([status])
+  @@index([positionGroup])
+  @@index([geography])
+}
+
+model SavedOpportunity {
+  id             String      @id @default(cuid())
+  userId         String
+  opportunityId  String
+  createdAt      DateTime    @default(now())
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, opportunityId])
+  @@index([userId])
+  @@index([opportunityId])
+}
+
+model OutreachRequest {
+  id                    String               @id @default(cuid())
+  userId                String
+  playerProfileId       String?
+  stakeholderId         String
+  opportunityId         String?
+  messageBody           String
+  assembledPacketUrl    String?
+  status                OutreachStatus       @default(DRAFT)
+  deliveredAt           DateTime?
+  responseState         OutreachResponseState @default(NONE)
+  moderationReason      String?
+  recipientSnapshotJson Json?
+  creditsReserved       Int                  @default(0)
+  creditsConsumed       Int                  @default(0)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playerProfile         PlayerProfile?       @relation(fields: [playerProfileId], references: [id], onDelete: SetNull)
+  stakeholder           Stakeholder          @relation(fields: [stakeholderId], references: [id], onDelete: Cascade)
+  opportunity           Opportunity?         @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([stakeholderId])
+  @@index([opportunityId])
+  @@index([status])
+}
+
+model CreditLedger {
+  id             String       @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  cycleStart     DateTime
+  cycleEnd       DateTime
+  creditsTotal   Int
+  creditsUsed    Int          @default(0)
+  creditsReserved Int         @default(0)
+  source         String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subscriptionId])
+}
+
+model AIInsight {
+  id                 String      @id @default(cuid())
+  userId             String
+  profileId          String?
+  insightType        InsightType
+  inputSnapshotJson  Json
+  outputJson         Json
+  confidence         Float?
+  createdAt          DateTime    @default(now())
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile            PlayerProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([insightType])
+}
+
+model ContentPost {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  category    String
+  body        String
+  visibility  PostVisibility @default(MEMBERS_ONLY)
+  authorId    String
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  author      User           @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+
+  @@index([publishedAt])
+  @@index([visibility])
+}
+
+model Comment {
+  id         String        @id @default(cuid())
+  postId     String
+  userId     String
+  profileId  String?
+  body       String
+  status     CommentStatus @default(PUBLISHED)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  post       ContentPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile    PlayerProfile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([postId])
+  @@index([userId])
+  @@index([status])
+}
+
+model ModerationEvent {
+  id          String   @id @default(cuid())
+  subjectType String
+  subjectId   String
+  actorId     String?
+  policyCode  String
+  actionTaken String
+  notes       String?
+  createdAt   DateTime @default(now())
+  actor       User?    @relation("ModerationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([subjectType, subjectId])
+  @@index([actorId])
+}
+
+model Notification {
+  id          String              @id @default(cuid())
+  userId      String
+  channel     NotificationChannel
+  templateKey String
+  payloadJson Json?
+  sentAt      DateTime?
+  readAt      DateTime?
+  createdAt   DateTime            @default(now())
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([readAt])
+}
+
+model BillingWebhookEvent {
+  id              String   @id @default(cuid())
+  provider        String
+  providerEventId String   @unique
+  eventType       String
+  processedAt     DateTime @default(now())
+  payloadJson     Json?
+
+  @@index([provider, processedAt])
+}

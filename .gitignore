@@ -1,0 +1,18 @@
+node_modules
+.next
+dist
+coverage
+.DS_Store
+src/generated/prisma
+.swift-module-cache
+tmp
+gmail-signature*
+inveniam-sport-wireframe
+Inveniam Sport Wireframe - Portland Updated.zip
+scripts/generate_signature.swift
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
