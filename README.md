@@ -28,7 +28,7 @@ Premium, web-first football access platform for serious 18+ players. This worksp
 
 ## Local development
 
-1. Copy [`.env.example`](/Users/arunb/Documents/Playground%2013/.env.example) to `.env`.
+1. Copy [`.env.example`](./.env.example) to `.env`.
 2. Point `DATABASE_URL` at a PostgreSQL database.
 3. Install dependencies:
 
@@ -88,6 +88,10 @@ pnpm build
 
 The repo began as a different product scaffold. The public and member-facing experience has been pivoted to Inveniam Sport, but production deployment still needs real service credentials and a full data/backend migration if you want every domain object in the PDF spec persisted natively rather than represented through launch-slice content.
 
-For the operational turn-up sequence, use [docs/launch-playbook.md](/Users/arunb/Documents/Playground%2013/docs/launch-playbook.md).
+For the operational turn-up sequence, use [docs/launch-playbook.md](./docs/launch-playbook.md).
 
-If you are deploying on Railway, use [docs/railway-setup.md](/Users/arunb/Documents/Playground%2013/docs/railway-setup.md).
+If you are deploying on Railway, use [docs/railway-setup.md](./docs/railway-setup.md).
+
+## Company brain
+
+Start with [docs/brain/README.md](docs/brain/README.md) for product context, voice and brand preferences, project pointers, decisions, reusable playbooks, and lessons. Contributors and AI assistants should also read [AGENTS.md](AGENTS.md). This public context excludes private operating records.
